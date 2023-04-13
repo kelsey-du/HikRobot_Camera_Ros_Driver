@@ -1,22 +1,29 @@
 # HIKROBOT-MVS-CAMERA-ROS
-The ros driver package of Hikvision Industrial Camera SDK. Support configuration parameters, the parameters have been optimized, and the photos have been transcoded to rgb format.
-Please install mvs, https://blog.csdn.net/weixin_41965898/article/details/116801491
+The ros driver package of Hikvision Industrial Camera SDK. Support configuration parameters, 
+the parameters have been optimized, and the photos have been transcoded from mono12 to mono16 format.
 
 # Install
+### SDK
+官网驱动，机器视觉工业相机客户端MVS V2.1.2（Linux）
+https://www.hikrobotics.com/cn/machinevision/service/download?module=0
+
+下载x86_64，deb版本
+
+运行上位机：
 ```
-mkdir -p ~/ws_hikrobot_camera/src
-git clone https://github.com/luckyluckydadada/HIKROBOT-MVS-CAMERA-ROS.git ~/ws_hikrobot_camera/src/hikrobot_camera
-cd ~/ws_hikrobot_camera
-catkin_make
+cd /opt/MVS/bin
+./MVS.sh
 ```
+
+### lsusb:
+```
+Bus 002 Device 010: ID 2bdf:0001  
+Bus 002 Device 009: ID 2bdf:0001
+```
+
 # launch run
 ```
 source ./devel/setup.bash 
 roslaunch hikrobot_camera hikrobot_camera.launch
 ```
-# launch run
-use rviz subscribe topic： /hikrobot_camera/rgb
-```
-source ./devel/setup.bash 
-roslaunch hikrobot_camera hikrobot_camera_rviz.launch
-```
+

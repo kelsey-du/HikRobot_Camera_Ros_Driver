@@ -1,0 +1,21 @@
+<launch>
+
+    <group ns="hikvision">
+        <group ns="left">
+            <rosparam file="$(find hikrobot_camera)/config/camera.yaml" command="load"/>
+            <node pkg="hikrobot_camera" type="hikrobot_camera" name="hikrobot_camera" respawn="false" output="screen" />
+                <param name="SerialNumber" value="K66988526"/>
+                <param name="FilpHorizontal" value="false"/>
+
+        </group>
+        <group ns="right">s
+            <rosparam file="$(find hikrobot_camera)/config/camera.yaml" command="load"/>
+            <node pkg="hikrobot_camera" type="hikrobot_camera" name="hikrobot_camera" respawn="false" output="screen" />
+                <param name="SerialNumber" value="K66988523"/>
+                <param name="FilpHorizontal" value="true"/>
+        </group>
+    </group>
+
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hikrobot_camera)/rviz_config/hikrobot.rviz" />
+
+</launch>

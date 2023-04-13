@@ -33,20 +33,14 @@ LINK_DIRECTORIES(
 add_executable(${PROJECT_NAME}
 src/hikrobot_camera.cpp)
 
- target_link_libraries(${PROJECT_NAME}
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-   GCBase_gcc421_v3_0
-   MvCameraControl
-   GenApi_gcc421_v3_0
-   MVGigEVisionSDK
-   log4cpp_gcc421_v3_0
-   MVRender
-   Log_gcc421_v3_0
-   MvUsb3vTL
-   MathParser_gcc421_v3_0
-   NodeMapData_gcc421_v3_0
-   MediaProcess
-   XmlParser_gcc421_v3_0
-   X11
- )
+target_link_libraries(
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  MvCameraControl
+  MVGigEVisionSDK
+  MVRender
+  MvUsb3vTL
+  MediaProcess
+  X11
+)
