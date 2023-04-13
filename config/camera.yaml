@@ -4,13 +4,22 @@ height: 1024            #图像高度
 Offset_x: 0             #X方向偏置
 Offset_y: 0             #Y方向偏置
 
-FrameRateEnable: true   #使能
-FrameRate: 40           #帧率
+FrameRateEnable: false   #使能
+FrameRate: 50           #帧率
 
+ExposureAuto: 0        #曝光，0 Off， 1 Once， 2 Continuous
 ExposureTime: 3000     #曝光时间
 
 GammaEnable: true
 Gamma: 0.7              #伽马因子
 
-GainAuto: 2             #亮度的固定增益
-FilpHorizontal: false  #水平翻转
+# 可以先设置为Continuous，让其自动调节，然后再设置为Off，固定增益
+GainAuto: 2             #增益，0 Off， 1 Once， 2 Continuous
+FlipHorizontal: false  #水平翻转
+FlipVertical: false  #垂直翻转
+
+#### AcquisitionControl ####
+TriggerMode: 1   #触发模式, 0 Off， 1 On
+TriggerSource: 14  #触发源, 2 Line2, 14 Line5, 4 Counter0, 7 Software, 8 FrequencyConverter
+TriggerActivation: 0   #触发极性, 0 RisingEdge, 1 FallingEdge, 2 LevelHigh, 3 LevelLow
+

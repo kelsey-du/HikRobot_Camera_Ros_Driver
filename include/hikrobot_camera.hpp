@@ -13,7 +13,7 @@ namespace camera {
 //********** define ************************************/
 #define MAX_IMAGE_DATA_SIZE (4 * 2048 * 3072)
 //********** frame ************************************/
-cv::Mat frame;
+
 //********** frame_empty ******************************/
 bool frame_empty = 0;
 //********** mutex ************************************/
@@ -29,13 +29,13 @@ enum CamerProperties {
   CAP_PROP_GAMMA_ENABLE,      //伽马因子可调
   CAP_PROP_GAMMA,             //伽马因子
   CAP_PROP_GAINAUTO,          //亮度
-  CAP_PROP_SATURATION_ENABLE, //饱和度可调
-  CAP_PROP_SATURATION,        //饱和度
+  CAP_PROP_EXPOSUREAUTO,      //自动曝光
   CAP_PROP_OFFSETX,           //X偏置
   CAP_PROP_OFFSETY,           //Y偏置
   CAP_PROP_TRIGGER_MODE,      //外部触发
   CAP_PROP_TRIGGER_SOURCE,    //触发源
-  CAP_PROP_LINE_SELECTOR      //触发线
+  CAP_PROP_TRIGGER_ACTIVATION,//触发极性
+  CAP_PROP_LINE_SELECTOR,      //触发线
 
 };
 
@@ -80,13 +80,15 @@ class Camera {
   bool GammaEnable;
   float Gamma;
   int GainAuto;
-  bool SaturationEnable;
-  int Saturation;
+  int ExposureAuto;
+
+  std::string SerialNumber;
+  bool FlipHorizontal;
+  bool FlipVertical;
   int TriggerMode;
   int TriggerSource;
+  int TriggerActivation;
   int LineSelector;
-  std::string SerialNumber;
-  bool FilpHorizontal;
 };
 //^ *********************************************************************************** //
 
@@ -109,15 +111,18 @@ Camera::Camera(ros::NodeHandle &node) {
   node.param("GammaEnable", GammaEnable, false);
   node.param("Gamma", Gamma, (float) 0.7);
   node.param("GainAuto", GainAuto, 2);
-  node.param("SaturationEnable", SaturationEnable, true);
-  node.param("Saturation", Saturation, 128);
+  node.param("ExposureAuto", ExposureAuto, 2);
+
   node.param("Offset_x", Offset_x, 0);
   node.param("Offset_y", Offset_y, 0);
-  node.param("TriggerMode", TriggerMode, 1);
-  node.param("TriggerSource", TriggerSource, 2);
-  node.param("LineSelector", LineSelector, 2);
+
   node.param<std::string>("SerialNumber", SerialNumber, "K66988523");
-  node.param("FilpHorizontal", FilpHorizontal, false);
+  node.param("FlipHorizontal", FlipHorizontal, false);
+  node.param("FlipVertical", FlipVertical, false);
+  node.param("TriggerMode", TriggerMode, 0);
+  node.param("TriggerSource", TriggerSource, 2);
+  node.param("TriggerActivation", TriggerActivation, 2);
+  node.param("LineSelector", LineSelector, 2);
 
   //********** 枚举设备 ********************************/
   MV_CC_DEVICE_INFO_LIST stDeviceList;
@@ -173,26 +178,21 @@ Camera::Camera(ros::NodeHandle &node) {
   this->set(CAP_PROP_WIDTH, width);
   this->set(CAP_PROP_OFFSETX, Offset_x);
   this->set(CAP_PROP_OFFSETY, Offset_y);
-  this->set(CAP_PROP_EXPOSURE_TIME, ExposureTime);
-  // printf("\n%d\n",GammaEnable);
+  this->set(CAP_PROP_EXPOSUREAUTO, ExposureAuto);
+  if(!ExposureAuto){
+    this->set(CAP_PROP_EXPOSURE_TIME, ExposureTime);
+  }
   this->set(CAP_PROP_GAMMA_ENABLE, GammaEnable);
-  // printf("\n%d\n",GammaEnable);
   if (GammaEnable)
     this->set(CAP_PROP_GAMMA, Gamma);
   this->set(CAP_PROP_GAINAUTO, GainAuto);
-  // this->set(CAP_PROP_TRIGGER_MODE, TriggerMode);
-  // this->set(CAP_PROP_TRIGGER_SOURCE, TriggerSource);
-  // this->set(CAP_PROP_LINE_SELECTOR, LineSelector);
-
-  // ********** frame **********/
-  nRet = MV_CC_SetEnumValue(handle, "TriggerMode", 0);
-  if (MV_OK == nRet) {
-    printf("set TriggerMode OK!\n");
-  } else {
-    printf("MV_CC_SetTriggerMode fail! nRet [%x]\n", nRet);
-  }
+  this->set(CAP_PROP_TRIGGER_MODE, TriggerMode);
+  this->set(CAP_PROP_TRIGGER_SOURCE, TriggerSource);
+  this->set(CAP_PROP_TRIGGER_ACTIVATION, TriggerActivation);
+  this->set(CAP_PROP_LINE_SELECTOR, LineSelector);
 
   //********** 图像格式 **********/
+  // 0x01080001:Mono8
   // 0x01100003:Mono10
   // 0x010C0004:Mono10Packed
   // 0x01100005:Mono12
@@ -244,7 +244,6 @@ Camera::Camera(ros::NodeHandle &node) {
 
   nThreadID = std::thread(&Camera::HKWorkThread, this, handle);
   // nRet = pthread_create(&nThreadID, NULL, &Camera::HKWorkThread, this);
-  // nRet = pthread_create(&nThreadID, NULL, [this](void* h) { return HKWorkThread(h); }, handle);
 
   if (nRet != 0) {
     printf("thread create failed.ret = %d\n", nRet);
@@ -428,34 +427,22 @@ bool Camera::set(CamerProperties type, float value) {
       }
       break;
     }
-    case CAP_PROP_SATURATION_ENABLE: {
+    case CAP_PROP_EXPOSUREAUTO: {
       //********** frame **********/
 
-      nRet = MV_CC_SetBoolValue(handle, "SaturationEnable", value); //饱和度是否可调 默认不可调(false)
+      nRet = MV_CC_SetEnumValue(handle, "ExposureAuto", value); //亮度 越大越亮
 
       if (MV_OK == nRet) {
-        printf("set SaturationEnable OK! value=%f\n", value);
+        printf("set ExposureAuto OK! value=%f\n", value);
       } else {
-        printf("Set SaturationEnable Failed! nRet = [%x]\n\n", nRet);
-      }
-      break;
-    }
-    case CAP_PROP_SATURATION: {
-      //********** frame **********/
-
-      nRet = MV_CC_SetIntValue(handle, "Saturation", value); //饱和度 默认128 最大255
-
-      if (MV_OK == nRet) {
-        printf("set Saturation OK! value=%f\n", value);
-      } else {
-        printf("Set Saturation Failed! nRet = [%x]\n\n", nRet);
+        printf("Set ExposureAuto Failed! nRet = [%x]\n\n", nRet);
       }
       break;
     }
 
     case CAP_PROP_TRIGGER_MODE: {
 
-      nRet = MV_CC_SetEnumValue(handle, "TriggerMode", value); //饱和度 默认128 最大255
+      nRet = MV_CC_SetEnumValue(handle, "TriggerMode", value); //触发模式
 
       if (MV_OK == nRet) {
         printf("set TriggerMode OK!\n");
@@ -466,7 +453,7 @@ bool Camera::set(CamerProperties type, float value) {
     }
     case CAP_PROP_TRIGGER_SOURCE: {
 
-      nRet = MV_CC_SetEnumValue(handle, "TriggerSource", value); //饱和度 默认128 最大255255
+      nRet = MV_CC_SetEnumValue(handle, "TriggerSource", value); //触发源
 
       if (MV_OK == nRet) {
         printf("set TriggerSource OK!\n");
@@ -475,9 +462,20 @@ bool Camera::set(CamerProperties type, float value) {
       }
       break;
     }
+    case CAP_PROP_TRIGGER_ACTIVATION: {
+
+      nRet = MV_CC_SetEnumValue(handle, "TriggerActivation", value); //触发源
+
+      if (MV_OK == nRet) {
+        printf("set TriggerActivation OK!\n");
+      } else {
+        printf("Set TriggerActivation Failed! nRet = [%x]\n\n", nRet);
+      }
+      break;
+    }
     case CAP_PROP_LINE_SELECTOR: {
 
-      nRet = MV_CC_SetEnumValue(handle, "LineSelector", value); //饱和度 默认128 最大255
+      nRet = MV_CC_SetEnumValue(handle, "LineSelector", value); //IO选择
 
       if (MV_OK == nRet) {
         printf("set LineSelector OK!\n");
@@ -505,10 +503,9 @@ bool Camera::reset() {
   nRet = this->set(CAP_PROP_GAMMA_ENABLE, GammaEnable) || nRet;
   nRet = this->set(CAP_PROP_GAMMA, Gamma) || nRet;
   nRet = this->set(CAP_PROP_GAINAUTO, GainAuto) || nRet;
-  nRet = this->set(CAP_PROP_SATURATION_ENABLE, SaturationEnable) || nRet;
-  nRet = this->set(CAP_PROP_SATURATION, Saturation) || nRet;
   nRet = this->set(CAP_PROP_TRIGGER_MODE, TriggerMode) || nRet;
   nRet = this->set(CAP_PROP_TRIGGER_SOURCE, TriggerSource) || nRet;
+  nRet = this->set(CAP_PROP_TRIGGER_ACTIVATION, TriggerActivation) || nRet;
   nRet = this->set(CAP_PROP_LINE_SELECTOR, LineSelector) || nRet;
   return nRet;
 }
@@ -530,21 +527,9 @@ bool Camera::PrintDeviceInfo(MV_CC_DEVICE_INFO *pstMVDevInfo) {
   return true;
 }
 
-//^ ********************************** Camera constructor************************************ //
-void Camera::ReadImg(cv::Mat &image) {
-
-  pthread_mutex_lock(&mutex);
-  if (frame_empty) {
-    image = cv::Mat();
-  } else {
-    image = camera::frame.clone();
-    frame_empty = 1;
-  }
-  pthread_mutex_unlock(&mutex);
-}
-
 //^ ********************************** HKWorkThread1 ************************************ //
 void *Camera::HKWorkThread(void *p_handle) {
+  cv::Mat frame;
   double start;
   int nRet;
   unsigned char *m_pBufForDriver = (unsigned char *) malloc(sizeof(unsigned char) * MAX_IMAGE_DATA_SIZE);
@@ -552,13 +537,17 @@ void *Camera::HKWorkThread(void *p_handle) {
   MV_FRAME_OUT_INFO_EX stImageInfo = {0};
   MV_CC_PIXEL_CONVERT_PARAM stConvertParam = {0};
   cv::Mat tmp;
+  cv_bridge::CvImagePtr cv_ptr = boost::make_shared<cv_bridge::CvImage>();
+  sensor_msgs::Image image_msg;
+  sensor_msgs::CameraInfo camera_info_msg;
+
   int image_empty_count = 0; //空图帧数
   while (ros::ok()) {
     start = static_cast<double>(cv::getTickCount());
-    nRet = MV_CC_GetOneFrameTimeout(p_handle, m_pBufForDriver, MAX_IMAGE_DATA_SIZE, &stImageInfo, 15);
+    nRet = MV_CC_GetOneFrameTimeout(p_handle, m_pBufForDriver, MAX_IMAGE_DATA_SIZE, &stImageInfo, 100);
     if (nRet != MV_OK) {
       if (++image_empty_count > 100) {
-        ROS_INFO("The Number of Faild Reading Exceed The Set Value!\n");
+        ROS_INFO("The Number of Failed Reading Exceed The Set Value!\n");
         exit(-1);
       }
       continue;
@@ -577,19 +566,18 @@ void *Camera::HKWorkThread(void *p_handle) {
 
     frame = cv::Mat(stImageInfo.nHeight, stImageInfo.nWidth, CV_16UC1, m_pBufForDriver).clone();
     frame *= 1 << 4;
-    // if(FilpHorizontal){
-    //   cv::flip(frame, frame, 0); //水平翻转
-    // }
+    if(FlipHorizontal){
+      cv::flip(frame, frame, 0); //水平翻转
+    }
+    if(FlipVertical){
+      cv::flip(frame, frame, 1); //垂直翻转
+    }
     frame_empty = 0;
     double time = ((double) cv::getTickCount() - start) / cv::getTickFrequency();
     //*************************************testing img********************************//
     // std::cout << "HK_camera,Time:" << time << "\tFPS:" << 1 / time << std::endl;
 
-    sensor_msgs::Image image_msg;
-    sensor_msgs::CameraInfo camera_info_msg;
-    cv_bridge::CvImagePtr cv_ptr = boost::make_shared<cv_bridge::CvImage>();
     cv_ptr->encoding = sensor_msgs::image_encodings::MONO16;
-
     cv_ptr->image = frame;
     image_msg = *(cv_ptr->toImageMsg());
     image_msg.header.stamp = ros::Time::now();  // ros发出的时间不是快门时间

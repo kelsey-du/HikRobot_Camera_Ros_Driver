@@ -22,8 +22,10 @@ using namespace cv;
 
 // TODO: 图像输出失败时提示
 // TODO: 右边相机图像上下翻转
-// TODO: 驱动在笔记本上部署
 // TODO: 驱动在nuc11上部署
+// TODO: 外部触发时也可以另外设置FrameRate，看这两者的逻辑关系
+// TODO: hikrobot_camera.hpp过于冗长，需要拆分
+// TODO: 是否需要每次恢复默认设置，如恢复为内部触发
 int main(int argc, char **argv)
 {
     //********** rosnode init **********/

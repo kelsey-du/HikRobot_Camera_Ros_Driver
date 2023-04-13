@@ -5,14 +5,16 @@
             <rosparam file="$(find hikrobot_camera)/config/camera.yaml" command="load"/>
             <node pkg="hikrobot_camera" type="hikrobot_camera" name="hikrobot_camera" respawn="false" output="screen" />
                 <param name="SerialNumber" value="K66988526"/>
-                <param name="FilpHorizontal" value="false"/>
+                <param name="FlipHorizontal" value="false"/>
+                <param name="FlipVertical" value="false"/>
 
         </group>
         <group ns="right">s
             <rosparam file="$(find hikrobot_camera)/config/camera.yaml" command="load"/>
             <node pkg="hikrobot_camera" type="hikrobot_camera" name="hikrobot_camera" respawn="false" output="screen" />
                 <param name="SerialNumber" value="K66988523"/>
-                <param name="FilpHorizontal" value="true"/>
+                <param name="FlipHorizontal" value="true"/>
+                <param name="FlipVertical" value="true"/>
         </group>
     </group>
 

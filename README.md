@@ -24,6 +24,6 @@ Bus 002 Device 009: ID 2bdf:0001
 # launch run
 ```
 source ./devel/setup.bash 
-roslaunch hikrobot_camera hikrobot_camera.launch
+roslaunch hikrobot_camera hikrobot_camera_stereo.launch
 ```
 
